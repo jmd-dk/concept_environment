@@ -84,7 +84,7 @@ for var in "$@"; do
     fi    
 done
 if [ "${top_dir_specified}" == "no" ]; then
-    printf "Where should the ${esc_concept} code be installed?"
+    printf "Where should the CO${esc_italic}N${esc_no_italic}CEPT environemnt code be installed?"
     read -p "$(echo $'\n> ')" -e top_dir
     if [ -z "${top_dir}" ]; then
         # The user hit enter without writing a path.
@@ -94,21 +94,20 @@ if [ "${top_dir_specified}" == "no" ]; then
 fi
 
 # Call the CO𝘕CEPT installer, passing all arguments given to this script
-concept_repo_url="https://raw.githubusercontent.com/jmd-dk/concept/master"
+concept_installer_url="https://raw.githubusercontent.com/jmd-dk/concept/master/installer"
 if [ "${top_dir_specified}" == "no" ]; then
-	bash <(wget -O- --no-check-certificate "${concept_repo_url}/installer") "${@}" "${top_dir}"
+	bash <(wget -O- --no-check-certificate "${concept_installer_url}") "${@}" "${top_dir}"
 else
-	bash <(wget -O- --no-check-certificate "${concept_repo_url}/installer") "${@}"
+	bash <(wget -O- --no-check-certificate "${concept_installer_url}") "${@}"
 fi
 
-# Get files from the CO𝘕CEPT github repository
-concept_environment_dir="${top_dir}/concept_environment"
-mkdir "${concept_environment_dir}"
-cd "${concept_environment_dir}"
-for fname in "Makefile" "pyxpp.py"; do
-	wget --no-check-certificate "${concept_repo_url}/concept/${fname}"
-done
-
-
-
+# Download the CO𝘕CEPT_environment github repository
+concept_environment_url="https://github.com/jmd-dk/concept_environment/archive/master.tar.gz"
+mkdir -p "${top_dir}/tmp"
+cd "${top_dir}/tmp"
+wget -O concept_environment.tar.gz --no-check-certificate "${concept_environment_url}"
+gzip -d < concept_environment.tar.gz | tar -ixvf -
+mv */* "${top_dir}/"
+cd "${top_dir}"
+rm -rf "${top_dir}/tmp"
 
