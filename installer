@@ -84,7 +84,7 @@ for var in "$@"; do
     fi    
 done
 if [ "${top_dir_specified}" == "no" ]; then
-    printf "Where should the $(eval "printf \"${esc_concept}\"") environemnt code be installed?"
+    printf "Where should the $(eval "printf \"${esc_concept}\"") environment code be installed?"
     read -p "$(echo $'\n> ')" -e top_dir
     if [ -z "${top_dir}" ]; then
         # The user hit enter without writing a path.
@@ -92,6 +92,13 @@ if [ "${top_dir_specified}" == "no" ]; then
         top_dir="."
     fi
 fi
+# Places backslashes before spaces.
+# These are needed when expanding tilde, but they will not persist.
+top_dir="${top_dir//[ ]/\\ }"
+# Expand tilde
+eval top_dir="${top_dir}"
+# Convert to absolute path
+top_dir=$(readlink -m "${top_dir}")
 
 # Call the CO𝘕CEPT installer, passing all arguments given to this script
 concept_installer_url="https://raw.githubusercontent.com/jmd-dk/concept/master/installer"
