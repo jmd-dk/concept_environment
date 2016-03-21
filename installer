@@ -84,7 +84,7 @@ for var in "$@"; do
     fi    
 done
 if [ "${top_dir_specified}" == "no" ]; then
-    printf "Where should the CO${esc_italic}N${esc_no_italic}CEPT environemnt code be installed?"
+    printf "Where should the $(eval "printf \"${esc_concept}\"") environemnt code be installed?"
     read -p "$(echo $'\n> ')" -e top_dir
     if [ -z "${top_dir}" ]; then
         # The user hit enter without writing a path.
