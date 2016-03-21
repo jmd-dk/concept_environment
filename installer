@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+
+# This file is part of the CO𝘕CEPT environment, the programming environment
+# which makes writing clean and efficient Cython code easy.
+# The CO𝘕CEPT environment can be viewed as a standalone application,
+# but is really a small part of the larger CO𝘕CEPT code,
+# the cosmological 𝘕-body code in Python. The CO𝘕CEPT environment
+# and CO𝘕CEPT therefore share the same copyright. For this copyright,
+# confront the header of e.g.
+# https://raw.githubusercontent.com/jmd-dk/concept/master/installer
+# Copyright © 2015-2016 Jeppe Mosgaard Dakin.
+#
+# The auther of the CO𝘕CEPT environment can be contacted at
+# dakin(at)phys.au.dk
+# The latest version of the CO𝘕CEPT environment is available at
+# https://github.com/jmd-dk/concept_environment/
+
+
+
+# This script downloads and installs the CO𝘕CEPT environment,
+# which consists of Python (including its dependencies OpenSSL and zlib),
+# a few files from the CO𝘕CEPT code and files specific to the CO𝘕CEPT
+# environment install, which are not included in the CO𝘕CEPT code.
+# If run without an argument, it will prompt for an
+# installation directory. Alternatively, this directory can be passed as
+# an argument. Everything will be installed within this directory.
+# All tests can be skipped by supplying --fast as an argument.
+# You can also download and run the newest version of this script by
+# executing the following command:
+# bash <(wget -O- --no-ch bit.ly/concept_environment)
+# The above uses a URL shortener. If it does not work, use the full URL:
+# bash <(wget -O- --no-ch https://raw.githubusercontent.com/jmd-dk/concept_environment/master/installer)
+
+# This script works by calling the CO𝘕CEPT install script.
+# Every argument agiven to and environment variable defined in this script
+# will be accessible by to the CO𝘕CEPT installer.
+# For details of optional arguments/environment variables,
+# see the CO𝘕CEPT installer;
+# https://raw.githubusercontent.com/jmd-dk/concept/master/installer
+
+
+# ANSI/VT100 escape sequences
+esc="\x1b"
+esc_normal="${esc}[0m"
+esc_bold="${esc}[1m"
+esc_italic="${esc}[3m"
+esc_no_italic="${esc}[23m"
+esc_yellow="${esc}[93m"
+
+# Start 'export block'
+set -a
+# Insall only the software explicitly stated below
+install_explicit_only="yes"
+# Of the many programs, only Python together with
+# its dependencies OpenSSL and zlib should be installed.
+python_install="yes"
+openssl_install="yes"
+zlib_install="yes"
+# Of the many Python packages, only Cython and NumPy should be installed
+cython_install="yes"
+numpy_install="yes"
+# The program name should now be "CO𝘕CEPT environment", not just "CO𝘕CEPT"
+esc_concept='CO${esc_italic}N${esc_no_italic}CEPT environment'
+# The CO𝘕CEPT installer should not great the user welcome
+say_welcome="no"
+# End 'export block'
+set +a
+
+# Print out welcome message
+sleep 1  # Needed if invoked directly from the web via wget
+printf "\n${esc_bold}${esc_yellow}This is the installation script for the $(eval "printf \"${esc_concept}\""),
+the programming environment which makes writing
+clean and efficient Cython code easy${esc_normal}\n\n"
+
+
+# Ask the user for installation directory
+if [ -z "${top_dir_specified}" ]; then
+    top_dir_specified="no"
+fi
+for var in "$@"; do
+    if [ "${var}" != "--fast" ]; then
+        top_dir="${var}"
+        top_dir_specified="yes"
+    fi    
+done
+if [ "${top_dir_specified}" == "no" ]; then
+    printf "Where should the ${esc_concept} code be installed?"
+    read -p "$(echo $'\n> ')" -e top_dir
+    if [ -z "${top_dir}" ]; then
+        # The user hit enter without writing a path.
+        # Install in current directory.
+        top_dir="."
+    fi
+fi
+
+# Call the CO𝘕CEPT installer, passing all arguments given to this script
+concept_repo_url="https://raw.githubusercontent.com/jmd-dk/concept/master"
+if [ "${top_dir_specified}" == "no" ]; then
+	bash <(wget -O- --no-check-certificate "${concept_repo_url}/installer") "${@}" "${top_dir}"
+else
+	bash <(wget -O- --no-check-certificate "${concept_repo_url}/installer") "${@}"
+fi
+
+# Get files from the CO𝘕CEPT github repository
+concept_environment_dir="${top_dir}/concept_environment"
+mkdir "${concept_environment_dir}"
+cd "${concept_environment_dir}"
+for fname in "Makefile" "pyxpp.py"; do
+	wget --no-check-certificate "${concept_repo_url}/concept/${fname}"
+done
+
+
+
+
