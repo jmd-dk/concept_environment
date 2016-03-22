@@ -19,12 +19,14 @@ and edit the `python` variable in the [Makefile](concept_environment/Makefile),
 so that it points to the Python interpreter of your Python distribution.
 
 ### Usage
-The CO*N*cept environment really only cosists of three files:
-* [Makefile](concept_environment/Makefile):   ...
-* [pyxpp.py](concept_environment/pyxpp.py):   ...
-* [commons.py](concept_environment/commons.py): ...
+The CO*N*CEPT environment really only cosists of three files:
+* [Makefile](concept_environment/Makefile): Controls the entire build process
+* [pyxpp.py](concept_environment/pyxpp.py): Responsible for compiling CO*N*CEPT cython code into normal cython code
+* [commons.py](concept_environment/commons.py): Implements global definitions used by compilable modules. These definitions come in two forms; actual cython constructs or dummy-emulations of cython constructs used when running in pur Python (non-compield) mode.
 Other files in the [concept_environment](concept_environment) directory are
 included for demonstration purposes only.
 
+To compile a Python `.py` module into a shared object `.so` file,
+add the module name to the `pyfiles` variable in the [Makefile](concept_environment/Makefile).
 
 <a name="footnote">1</a>: <https://github.com/jmd-dk/concept>
