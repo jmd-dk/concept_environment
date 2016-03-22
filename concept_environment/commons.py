@@ -202,18 +202,26 @@ from libc.math cimport (sin, cos, tan,
 # The pyxpp script convert all Unicode source code characters into
 # ASCII. The function below grants the code access to
 # Unicode string literals, by undoing the convertion.
-if not cython.compiled:
-    # Dummy unicode function for pure Python
-    def unicode(c):
-        return c
-else:
-    """
-    @cython.header(c='str', returns='str')
-    def unicode(c):
-        if len(c) > 10 and c.startswith('__UNICODE__'):
-            c = c[11:]
-        c = c.replace('__space__', ' ')
-        c = c.replace('__dash__', '-')
-        return unicodedata.lookup(c)
-    """
+@cython.header(s='str', returns='str')
+def unicode(s):
+    return re.subn('__BEGIN_UNICODE__.*?__END_UNICODE__', unicode_repl, s)[0]
+@cython.pheader(# Arguments
+                match='object',  # re match object
+                # Locals
+                pat='str',
+                s='str', 
+                sub='str',
+                returns='str',
+                )
+def unicode_repl(match):
+    s = match.group()
+    s = s[17:(len(s) - 15)]
+    for pat, sub in unicode_repl_dict.items():
+        s = s.replace(pat, sub)
+    s = unicodedata.lookup(s)
+    return s
+cython.declare(unicode_repl_dict='dict')
+unicode_repl_dict = {'__space__': ' ',
+                     '__dash__' : '-',
+                     }
 

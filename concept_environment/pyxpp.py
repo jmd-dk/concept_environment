@@ -460,13 +460,25 @@ def power2product(filename):
 def unicode2ASCII(filename):
     with open(filename, 'r', encoding='utf-8') as pyxfile:
         text = list(pyxfile.read())
+    N_wrongly_encoded = 0
+    skip = False
     for i, char in enumerate(text):
+        if skip:
+            skip = False
+            continue
         if ord(char) > 127:
-            text[i] = '{}{}{}'.format('__BEGIN_UNICODE__',
-                                      unicodedata.name(char),
-                                      '__END_UNICODE__')
-            text[i] = text[i].replace(' ', '__space__')
-            text[i] = text[i].replace('-', '__dash__')
+            try:
+                unicodename = unicodedata.name(char)
+            except:
+                unicodename = unicodedata.name(char + text[i + 1])
+                skip = True
+            text[i - N_wrongly_encoded] = '{}{}{}'.format('__BEGIN_UNICODE__',
+                                                          unicodename,
+                                                          '__END_UNICODE__')
+            text[i - N_wrongly_encoded] = text[i].replace(' ', '__space__')
+            text[i - N_wrongly_encoded] = text[i].replace('-', '__dash__')
+            if skip:
+                N_wrongly_encoded += 1
     text = ''.join(text)
     with open(filename, 'w', encoding='utf-8') as pyxfile:
         pyxfile.write(text)
@@ -1252,3 +1264,4 @@ elif filename.endswith('.pyx'):
     make_pxd(filename)
 else:
     raise Exception('Got "{}", which is neither a .py nor a .pyx file'.format(filename))
+
