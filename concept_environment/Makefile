@@ -20,48 +20,105 @@ SHELL = /usr/bin/env bash
 
 
 
-##############################
-# Specification of filenames #
-##############################
-# Modules which should be cythonized and compiled
+###################################################
+# Modules which should be cythonized and compiled #
+###################################################
 pyfiles = commons fibonacci main
+
+
+
+##########################
+# The Python interpreter #
+##########################
+python = $(firstword $(shell ls ../python/bin/python*))
 
 
 
 ########################################
 # Settings for compilation and linking #
 ########################################
-# Python information
-python = $(firstword $(shell ls ../python/bin/python*))
+# Function which takes in a quoted argument. If this argument is
+# a path (perhaps prefixed with e.g. -I) and it is located near this
+# Makefile, the return value is the relative path. Otherwise, the
+# return value is just the untouched argument.
+# A backslash will be placed before spaces.
+sensible_path = $(shell $(python) -c "import os;                                                  \
+                                      path = $1;                                                  \
+                                      prefix = ([''] + [prefix for prefix in                      \
+                                                        ('-I', '-L', '-Wl,-rpath=')               \
+                                                        if path.startswith(prefix)]               \
+                                                )[-1];                                            \
+                                      abspath = path[len(prefix):];                               \
+                                      relpath = os.path.relpath(abspath, '.');                    \
+                                      path = abspath if relpath.startswith('../..') else relpath; \
+                                      path = prefix + path;                                       \
+                                      path = path.replace(' ', chr(92) + ' ');                    \
+                                      path = path.replace(2*chr(92), chr(92));                    \
+                                      print(path);                                                \
+                                      "                                                           \
+                  )
+# Function which eliminates duplicates
+uniq = $(if $1,$(firstword $1) $(call uniq,$(filter-out $(firstword $1),$1)))
+# The python configuration script
+python_config = $(python)-config
 # Options passed when cythonizing .pyx files
 python_version_major = $(shell $(python) -c "import sys; print(sys.version_info.major)")
 cythonflags = -$(python_version_major) -a
 # Includes
-python_incl = $(shell $(python)-config --includes)
+python_incl = $(shell $(python_config) --includes)
 includes    = $(python_incl)
 # Compiler options
-CC                = $(shell $(python) -c "import sysconfig; print(sysconfig.get_config_vars()['CC'])")
-python_cflags     = $(shell $(python)-config --cflags)
+python_cc         = $(shell $(python) -c "import sysconfig;                      \
+                                          print(sysconfig.get_config_var('CC')); \
+                                          "                                      \
+                      )
+CC                = $(call uniq, $(foreach flag, $(python_cc),                   \
+                                                 $(call sensible_path,'$(flag)') \
+                                   )                                             \
+                      )
 unwanted_warnings = unreachable-code \
                     uninitialized    \
                     unused-result    \
                     unused-but-set-variable
+python_cflags     = $(filter-out $(addprefix -W,$(unwanted_warnings)), \
+                                 $(shell $(python_config) --cflags))
 other_cflags      = -O3                  \
                     -pthread             \
                     -std=c99             \
                     -fno-strict-aliasing \
                     -fPIC                \
+                    -Wall                \
                     -Wextra              \
                     $(addprefix -Wno-,$(unwanted_warnings))
-CFLAGS            = $(filter-out $(addprefix -W,$(unwanted_warnings)),$(python_cflags) $(other_cflags) $(includes))
+CFLAGS            = $(call uniq, $(foreach flag, $(python_cflags)                \
+                                                 $(other_cflags)                 \
+                                                 $(includes)                     \
+                                                 ,                               \
+                                                 $(call sensible_path,'$(flag)') \
+                                   )                                             \
+                      )
 # Libraries to link
-python_libdir = $(shell $(python) -c "import sysconfig; print(sysconfig.get_config_vars()['LIBDIR'])")
-python_libs   = -L"$(python_libdir)" -Wl,"-rpath=$(python_libdir)" $(shell $(python)-config --libs)
-LDLIBS        = $(python_libs) -Wl,-O3
+python_libdir = $(shell $(python) -c "import sysconfig;                          \
+                                      print(sysconfig.get_config_var('LIBDIR')); \
+                                      "                                          \
+                  )
+python_libs   = -L$(python_libdir) -Wl,-rpath=$(python_libdir) $(shell $(python_config) --libs)
+other_libs    = -Wl,-O3
+LDLIBS        = $(call uniq, $(foreach flag, $(python_libs)                   \
+                                             $(other_libs)                    \
+                                             ,                                \
+                                              $(call sensible_path,'$(flag)') \
+                               )                                              \
+                  )
 # Linker options
-python_ldflags = $(shell $(python)-config --ldflags)
+python_ldflags = $(shell $(python_config) --ldflags)
 other_ldflags  = -shared
-LDFLAGS        = $(python_ldflags) $(other_ldflags)
+LDFLAGS        = $(call uniq, $(foreach flag, $(python_ldflags)               \
+                                              $(other_ldflags)                \
+                                              ,                               \
+                                              $(call sensible_path,'$(flag)') \
+                                )                                             \
+                   )
 
 
 
@@ -82,10 +139,12 @@ esc_yellow  = $(esc)[93m
 esc_heading = $(esc_bold)$(esc_yellow)
 # Function which prints out the headings
 define heading
-$(python) -c "from __future__ import print_function;                                    \
-              print(('\n' if '$(build_status)' else '')                                 \
-                    + '$(esc_heading)Building the $(basename $@) module$(esc_normal)\n' \
-              if '$(build_status)' != 'running' else '', end='')"
+$(python) -c "print('\n' if '$(build_status)' and '$(build_status)' != 'running' else '', \
+                    end='');                                                              \
+              print('$(esc_heading)Building the $(basename $@) module$(esc_normal)\n'     \
+                    if '$(build_status)' != 'running' else '',                            \
+                    end='');                                                              \
+              "
 endef
 
 # Make everything
