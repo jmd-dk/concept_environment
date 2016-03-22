@@ -32,8 +32,7 @@ pyfiles = commons fibonacci main
 # Settings for compilation and linking #
 ########################################
 # Python information
-python               = $(firstword $(shell ls ../python/bin/python*))
-python_libdir        = ../python/lib
+python = $(firstword $(shell ls ../python/bin/python*))
 # Options passed when cythonizing .pyx files
 python_version_major = $(shell $(python) -c "import sys; print(sys.version_info.major)")
 cythonflags = -$(python_version_major) -a
@@ -47,11 +46,18 @@ unwanted_warnings = unreachable-code \
                     uninitialized    \
                     unused-result    \
                     unused-but-set-variable
-other_cflags      = -O3 -pthread -std=c99 -fno-strict-aliasing -fPIC -Wextra $(addprefix -Wno-,$(unwanted_warnings))
+other_cflags      = -O3                  \
+                    -pthread             \
+                    -std=c99             \
+                    -fno-strict-aliasing \
+                    -fPIC                \
+                    -Wextra              \
+                    $(addprefix -Wno-,$(unwanted_warnings))
 CFLAGS            = $(filter-out $(addprefix -W,$(unwanted_warnings)),$(python_cflags) $(other_cflags) $(includes))
 # Libraries to link
-python_libs = -L$(python_libdir) -Wl,"-rpath=$(python_libdir)" $(shell $(python)-config --libs)
-LDLIBS      = $(python_libs) -Wl,-O3
+python_libdir = $(shell $(python) -c "import sysconfig; print(sysconfig.get_config_vars()['LIBDIR'])")
+python_libs   = -L"$(python_libdir)" -Wl,"-rpath=$(python_libdir)" $(shell $(python)-config --libs)
+LDLIBS        = $(python_libs) -Wl,-O3
 # Linker options
 python_ldflags = $(shell $(python)-config --ldflags)
 other_ldflags  = -shared
@@ -69,44 +75,55 @@ LDFLAGS        = $(python_ldflags) $(other_ldflags)
 # headings.
 
 # ANSI/VT100 escape sequences
-esc=\x1b
-esc_normal=$(esc)[0m
-esc_bold=$(esc)[1m
-esc_yellow=$(esc)[93m
-esc_heading=$(esc_bold)$(esc_yellow)
+esc         = \x1b
+esc_normal  = $(esc)[0m
+esc_bold    = $(esc)[1m
+esc_yellow  = $(esc)[93m
+esc_heading = $(esc_bold)$(esc_yellow)
+# Function which prints out the headings
+define heading
+$(python) -c "from __future__ import print_function;                                    \
+              print(('\n' if '$(build_status)' else '')                                 \
+                    + '$(esc_heading)Building the $(basename $@) module$(esc_normal)\n' \
+              if '$(build_status)' != 'running' else '', end='')"
+endef
 
 # Make everything
 all: $(addsuffix .so, $(pyfiles))
+	@# This suppresses "make: Nothing to be done for `all'."
 .PHONY: all
 
 # Link object filed into shared object Python modules
 $(addsuffix .so, $(pyfiles)): %.so: %.o
-	@$(python) -c "from __future__ import print_function; print('\n$(esc_heading)Building the $(basename $@) module$(esc_normal)\n' if '$(build_status)' != 'running' else '', end='')"
-	$(eval build_status = running)
+	@$(call heading)
 	$(CC) $< -o $@ $(LDFLAGS) $(LDLIBS)
 	$(eval build_status = finsihed)
 
 # Compile c source files into object files
 $(addsuffix .o, $(pyfiles)): %.o: %.c
-	@$(python) -c "from __future__ import print_function; print('\n$(esc_heading)Building the $(basename $@) module$(esc_normal)\n' if '$(build_status)' != 'running' else '', end='')"
+	@$(call heading)
 	$(eval build_status = running)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-# Cythonize .pyx and .pxd files into c source files
+# Cythonize .pyx and .pxd files into C source files
+# (and also produce the annotated .html file).
 $(addsuffix .c, $(pyfiles)): %.c: %.pyx %.pxd
-	@$(python) -c "from __future__ import print_function; print('\n$(esc_heading)Building the $(basename $@) module$(esc_normal)\n' if '$(build_status)' != 'running' else '', end='')"
+	@$(call heading)
 	$(eval build_status = running)
+	$(python) -m cython $(cythonflags) $<
+# Same as above (for explicit builds of html)
+$(addsuffix .html, $(pyfiles)): %.html: %.pyx %.pxd
 	$(python) -m cython $(cythonflags) $<
 
 # Write .pxd files from .pyx files using the pyxpp script
 $(addsuffix .pxd, $(pyfiles)): %.pxd: %.pyx pyxpp.py
-	@$(python) -c "from __future__ import print_function; print('\n$(esc_heading)Building the $(basename $@) module$(esc_normal)\n' if '$(build_status)' != 'running' else '', end='')"
+	@$(call heading)
 	$(eval build_status = running)
 	$(python) -B pyxpp.py $<
 
 # Write .pyx files from .py files using the pyxpp script
-$(addsuffix .pyx, $(pyfiles)): %.pyx: %.py pyxpp.py
-	@$(python) -c "from __future__ import print_function; print('\n$(esc_heading)Building the $(basename $@) module$(esc_normal)\n' if '$(build_status)' != 'running' else '', end='')"
+$(addsuffix .pyx, $(pyfiles)): %.pyx: %.py pyxpp.py $(MAKEFILE_LIST)
+	@$(call heading)
 	$(eval build_status = running)
 	$(python) -B pyxpp.py $<
 
