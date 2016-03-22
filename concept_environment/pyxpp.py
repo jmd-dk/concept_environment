@@ -15,6 +15,10 @@
 # dakin(at)phys.au.dk
 # The latest version of the CO𝘕CEPT environment is available at
 # https://github.com/jmd-dk/concept_environment/
+#
+# The auther of CO𝘕CEPT can be contacted at dakin(at)phys.au.dk
+# The latest version of CO𝘕CEPT is available at
+# https://github.com/jmd-dk/concept/
 
 
 
@@ -76,9 +80,27 @@ from time import sleep
 
 
 # Mapping of modules to extension types defined within (Cython classes)
-extension_types = {}
+extension_types = {'species':  'Component',
+                   'snapshot': 'StandardSnapshot, Gadget2Snapshot',
+                   }
 
 
+
+# Remove any wrongly specified extension types
+extension_types_that_exist = {}
+for module, extension_type_str in extension_types.items():
+    filename = module + '.py'
+    if os.path.isfile(filename):
+        with open(filename, 'r', encoding='utf-8') as pyfile:
+            text = pyfile.read()
+        for extension_type in extension_type_str.split(','):
+            extension_type = extension_type.replace(' ', '')
+            if re.search('class +' + extension_type + ' *:', text):
+                if module in extension_types_that_exist:
+                    extension_types_that_exist[module] += ', ' + extension_type
+                else:
+                    extension_types_that_exist[module] = extension_type
+extension_types = extension_types_that_exist
 
 def oneline(filename):
     in_quotes = [False, False]
@@ -728,10 +750,13 @@ def cython_decorators(filename):
 
 
 def make_pxd(filename):
-    customs = {# Classes
-               # Function pointers
+    # Dictionary mapping custom ctypes to their definiton
+    # or an import of their definition.
+    customs = {# Function pointers
                'func_b_ddd':     ('ctypedef bint '
                                   '(*func_b_ddd_pxd)(double, double, double)'),
+               'func_d_d':       ('ctypedef double '
+                                  '(*func_d_d_pxd)(double)'),
                'func_d_dd':      ('ctypedef double '
                                   '(*func_d_dd_pxd)(double, double)'),
                'func_d_ddd':     ('ctypedef double '
@@ -739,7 +764,29 @@ def make_pxd(filename):
                'func_dstar_ddd': ('ctypedef double* '
                                   '(*func_dstar_ddd_pxd)(double, double, double)'),
                # External definitions
+               'fftw_plan':          ('cdef extern from "fft.c":\n'
+                                      '    ctypedef struct fftw_plan_struct:\n'
+                                      '        pass\n'
+                                      '    ctypedef fftw_plan_struct *fftw_plan'),
+               'fftw_return_struct': ('cdef extern from "fft.c":\n'
+                                      '    ctypedef struct fftw_plan_struct:\n'
+                                      '        pass\n'
+                                      '    ctypedef fftw_plan_struct *fftw_plan\n'
+                                      '    struct fftw_return_struct:\n'
+                                      '        ptrdiff_t gridsize_local_i\n'
+                                      '        ptrdiff_t gridsize_local_j\n'
+                                      '        ptrdiff_t gridstart_local_i\n'
+                                      '        ptrdiff_t gridstart_local_j\n'
+                                      '        double* grid\n'
+                                      '        fftw_plan plan_forward\n'
+                                      '        fftw_plan plan_backward'),
                }
+    # Add Cython classes (extension types) to customs
+    for module, extension_type_str in extension_types.items():
+        for extension_type in extension_type_str.split(','):
+            extension_type = extension_type.replace(' ', '')
+            customs[extension_type] = 'from {} cimport {}'.format(module, extension_type)
+    # Begin constructing pxd
     header_lines = []
     pxd_filename = filename[:-3] + 'pxd'
     pxd_lines = []
@@ -1264,4 +1311,3 @@ elif filename.endswith('.pyx'):
     make_pxd(filename)
 else:
     raise Exception('Got "{}", which is neither a .py nor a .pyx file'.format(filename))
-

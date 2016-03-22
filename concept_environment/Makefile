@@ -23,7 +23,7 @@ SHELL = /usr/bin/env bash
 ###################################################
 # Modules which should be cythonized and compiled #
 ###################################################
-pyfiles = commons fibonacci main
+pyfiles = commons features fibonacci main
 
 
 
@@ -139,7 +139,8 @@ esc_yellow  = $(esc)[93m
 esc_heading = $(esc_bold)$(esc_yellow)
 # Function which prints out the headings
 define heading
-$(python) -c "print('\n' if '$(build_status)' and '$(build_status)' != 'running' else '', \
+$(python) -c "from __future__ import print_function;                                      \
+              print('\n' if '$(build_status)' and '$(build_status)' != 'running' else '', \
                     end='');                                                              \
               print('$(esc_heading)Building the $(basename $@) module$(esc_normal)\n'     \
                     if '$(build_status)' != 'running' else '',                            \
@@ -194,6 +195,7 @@ $(addsuffix .pyx, $(pyfiles)): %.pyx: %.py pyxpp.py $(MAKEFILE_LIST)
 # Add any additional target dependencies here.
 # - Every cimport function in a .py leads to a dependency of the
 #   form .c: imported_module.pxd
+features.c:  commons.pxd
 fibonacci.c: commons.pxd
 main.c:      commons.pxd fibonacci.pxd
 

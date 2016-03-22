@@ -30,7 +30,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # Miscellaneous modules
-import contextlib, ctypes, cython, inspect, numpy as np, re, sys, unicodedata
+import ctypes, cython, inspect, numpy as np, re, sys, unicodedata
 
 
 
@@ -138,7 +138,17 @@ if not cython.compiled:
         match = re.search('(.*)\[', dtype)
         if match:
             # Pointer to array cast assumed
-            # (array to array in pure Python).
+            shape = dtype.replace(':', '')
+            shape = shape[(shape.index('[') + 1):]
+            shape = shape.rstrip()[:-1]
+            if shape[-1] != ',':
+                shape += ','
+            shape = '(' + shape + ')'
+            try:
+                shape = eval(shape, inspect.stack()[1][0].f_locals)
+            except:
+                shape = eval(shape, inspect.stack()[1][0].f_globals)
+            a = np.ctypeslib.as_array(a, shape)
             return a
         else:
             # Scalar
