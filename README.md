@@ -9,13 +9,22 @@ Originally developed for the CO*N*CEPT code<sup>[1](#footnote)</sup>.
 To install a seperate python distribution and setup the CO*N*CEPT environment,
 simply run the [installer](installer) script. You can even invoke it directly
 from a terminal, by running
-```sh
+```
 bash <(wget -O- --no-ch bit.ly/concept_environment)
 ```
 
 To use the CO*N*CEPT environment with a pre-installed Python distribution,
-download the [Makefile](concept_environment/Makefile) and edit the `python`
-and `python_libdir` definitions according to your Python distribution.
+download the files in the [concept_environment](concept_environment) directory
+and edit the `python` variable in the [Makefile](concept_environment/Makefile),
+so that it points to the Python interpreter of your Python distribution.
+
+### Usage
+The CO*N*cept environment really only cosists of three files:
+* [Makefile](concept_environment/Makefile):   ...
+* [pyxpp.py](concept_environment/pyxpp.py):   ...
+* [commons.py](concept_environment/commons.py): ...
+Other files in the [concept_environment](concept_environment) directory are
+included for demonstration purposes only.
 
 
 <a name="footnote">1</a>: <https://github.com/jmd-dk/concept>
