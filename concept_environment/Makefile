@@ -60,7 +60,7 @@ sensible_path = $(shell $(python) -c "import os;                                
 # Function which eliminates duplicates
 uniq = $(if $1,$(firstword $1) $(call uniq,$(filter-out $(firstword $1),$1)))
 # The python configuration script
-python_config = $(python)-config
+python_config = $(shell readlink -f $$(which $(python)))-config
 # Options passed when cythonizing .pyx files
 python_version_major = $(shell $(python) -c "import sys; print(sys.version_info.major)")
 cythonflags = -$(python_version_major) -a
