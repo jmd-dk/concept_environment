@@ -149,6 +149,7 @@ if not cython.compiled:
             except:
                 shape = eval(shape, inspect.stack()[1][0].f_globals)
             a = np.ctypeslib.as_array(a, shape)
+            a = np.reshape(a, shape)
             return a
         else:
             # Scalar
