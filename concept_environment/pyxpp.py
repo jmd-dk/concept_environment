@@ -1192,15 +1192,37 @@ def constant_expressions(filename):
             search = re.search('ℝ\[(.*?)\]', line)
             if not search or line.replace(' ', '').startswith('#'):
                 continue
-            no_blackboard_bold_R = False
             expression = search.group(1)
+            R_statement = search.group(0)
+            if expression.count('[') != expression.count(']'):
+                # Expression contains brackets,
+                # which ruin the above regex.
+                n_bra = 0
+                started = False
+                started_bra = False
+                for l, c in enumerate(line):
+                    if c == 'ℝ':
+                        started = True
+                        R_index = l
+                    if started and c == '[':
+                        if not started_bra:
+                            start_index = l + 1
+                        started_bra = True
+                        n_bra += 1
+                    if started and c == ']':
+                        n_bra -= 1
+                    if started_bra and n_bra == 0:
+                        expression = line[start_index:l]
+                        R_statement = line[R_index:(l + 1)]
+                        break
+            no_blackboard_bold_R = False
             expressions.append(expression)
             expression_cython = 'ℝ_' + expression.replace(' ', '')
             for op, op_name in zip(operations, operations_names):
                 expression_cython = expression_cython.replace(op, '_{}_'.format(op_name))
             expression_cython = expression_cython.replace('__', '_')
             expressions_cython.append(expression_cython)
-            lines[i] = line.replace(search.group(0), expression_cython)
+            lines[i] = line.replace(R_statement, expression_cython)
             # Find out where the declaration should be
             variables = [expression.replace(' ', '')]
             for op in operations:
