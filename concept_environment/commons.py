@@ -149,11 +149,14 @@ if not cython.compiled:
             except:
                 shape = eval(shape, inspect.stack()[1][0].f_globals)
             a = np.ctypeslib.as_array(a, shape)
-            a = np.reshape(a, shape)
+            a = np.reshape(a[:np.prod(shape)], shape)
             return a
-        else:
+        elif dtype in C2np:
             # Scalar
             return C2np[dtype](a)
+        else:
+            # Extension type (Python class in pure Python)
+            return a
     # Mathematical functions
     from numpy import (sin, cos, tan,
                        arcsin,  arccos, arctan,
